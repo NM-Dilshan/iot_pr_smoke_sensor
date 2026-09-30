@@ -1,0 +1,51 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history/
+.svn/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+
+# Android build files
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# Generated files
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Environment / secrets
+.env
+.env.*
+*.jks
+*.keystore
+key.properties
+android/key.properties
+
+# Firebase / secrets
+# Uncomment these ONLY if you do not want Firebase config committed:
+# android/app/google-services.json
+# ios/Runner/GoogleService-Info.plist
