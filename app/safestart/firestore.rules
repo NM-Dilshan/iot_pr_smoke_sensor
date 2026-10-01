@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function text(value) { return value is string && value.size() > 0 && value.size() <= 200; }
+    function contact(c) {
+      return c == null || (c is map && c.keys().hasAll(['name', 'phoneNumber', 'relationship'])
+        && c.keys().hasOnly(['name', 'phoneNumber', 'relationship'])
+        && text(c.name) && c.phoneNumber is string && c.phoneNumber.size() >= 7 && c.phoneNumber.size() <= 30
+        && c.relationship in ['family', 'parent', 'spouse', 'friend', 'supervisor', 'other']);
+    }
+    function profile(d) {
+      return d.keys().hasAll(['fullName', 'employeeId', 'email', 'userType', 'emergencyContact', 'createdAt', 'updatedAt'])
+        && d.keys().hasOnly(['fullName', 'employeeId', 'email', 'userType', 'emergencyContact', 'createdAt', 'updatedAt'])
+        && text(d.fullName) && text(d.employeeId) && text(d.email)
+        && d.email == request.auth.token.email
+        && d.userType in ['employee', 'driver'] && contact(d.emergencyContact)
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    function testResult(d) {
+      return d.keys().hasAll(['testType', 'sensorReading', 'status', 'timestamp', 'source', 'isPrototype'])
+        && d.keys().hasOnly(['testType', 'sensorReading', 'status', 'timestamp', 'source', 'isPrototype'])
+        && d.testType in ['vehicle', 'office']
+        && d.sensorReading is number && d.sensorReading >= 0
+        && (d.sensorReading - d.sensorReading) == 0
+        && ((d.sensorReading < 0.20 && d.status == 'safe')
+          || (d.sensorReading >= 0.20 && d.sensorReading < 0.40 && d.status == 'caution')
+          || (d.sensorReading >= 0.40 && d.status == 'danger'))
+        && d.timestamp is timestamp && d.source == 'simulation' && d.isPrototype == true;
+    }
+    match /users/{uid} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && profile(request.resource.data) && request.resource.data.createdAt == request.time;
+      allow update: if owner(uid) && profile(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+      match /tests/{testId} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && exists(/databases/$(database)/documents/users/$(uid)) && testResult(request.resource.data);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

@@ -1,3 +1,5 @@
+import 'support/fakes.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safestart/main.dart';
@@ -26,7 +28,12 @@ Future<void> enter(WidgetTester tester, String label, String value) async {
 
 void main() {
   testWidgets('Splash advances to login after 2.6 seconds', (tester) async {
-    await tester.pumpWidget(const SafeStartApp());
+    await tester.pumpWidget(
+      SafeStartApp(
+        initialize: () async =>
+            MaterialApp(home: LoginScreen(auth: FakeAuthService())),
+      ),
+    );
     expect(find.byType(SplashScreen), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(LoginScreen), findsNothing);
@@ -37,7 +44,12 @@ void main() {
   });
 
   testWidgets('Disposing splash cancels pending navigation', (tester) async {
-    await tester.pumpWidget(const SafeStartApp());
+    await tester.pumpWidget(
+      SafeStartApp(
+        initialize: () async =>
+            MaterialApp(home: LoginScreen(auth: FakeAuthService())),
+      ),
+    );
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 3));
     expect(tester.takeException(), isNull);
@@ -47,12 +59,15 @@ void main() {
     'Login validates, toggles password, and opens the demo dashboard',
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.dark, home: const LoginScreen()),
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: LoginScreen(auth: FakeAuthService()),
+        ),
       );
       await tapVisible(tester, find.text('SIGN IN'));
-      expect(find.text('Enter your email or employee ID.'), findsOneWidget);
+      expect(find.text('Enter your email.'), findsOneWidget);
       expect(find.text('Enter your password.'), findsOneWidget);
-      await enter(tester, 'Email / Employee ID', 'EMP001');
+      await enter(tester, 'Email', 'alex@example.com');
       await enter(tester, 'Password', '123');
       await tapVisible(tester, find.text('SIGN IN'));
       expect(find.text('Use at least 6 characters.'), findsOneWidget);
@@ -77,7 +92,10 @@ void main() {
     'Signup validates all fields and terms, then returns with success',
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.dark, home: const LoginScreen()),
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: LoginScreen(auth: FakeAuthService()),
+        ),
       );
       await tapVisible(tester, find.text('Create Account'));
       expect(find.byType(SignupScreen), findsOneWidget);
@@ -136,7 +154,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.dark, home: const LoginScreen()),
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: LoginScreen(auth: FakeAuthService()),
+      ),
     );
     await tapVisible(tester, find.text('Create Account'));
     await tapVisible(tester, find.text('SIGN IN'));
@@ -152,7 +173,10 @@ void main() {
     tester.view.viewInsets = const FakeViewPadding(bottom: 280);
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.dark, home: const LoginScreen()),
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: LoginScreen(auth: FakeAuthService()),
+      ),
     );
     await enter(tester, 'Password', 'secret1');
     await tapVisible(tester, find.text('Create Account'));

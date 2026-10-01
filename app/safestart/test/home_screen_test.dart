@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safestart/screens/home/home_screen.dart';
+import 'package:safestart/screens/history/history_screen.dart';
 import 'package:safestart/theme/app_theme.dart';
 import 'package:safestart/widgets/dashboard_stat_card.dart';
 
@@ -52,9 +53,6 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
     }
     final actions = {
-      'History': 'History will be implemented in a later step.',
-      'Emergency Contact':
-          'Emergency Contact will be implemented in a later step.',
       'Device Status':
           'ESP32 device is not connected. SafeStart is currently in Demo Mode.',
     };
@@ -62,7 +60,7 @@ void main() {
       await tapVisible(tester, find.widgetWithText(ListTile, action.key));
       expect(find.text(action.value), findsOneWidget);
     }
-    for (final label in ['History', 'Notifications', 'Settings']) {
+    for (final label in ['Notifications']) {
       await tapVisible(
         tester,
         find.descendant(
@@ -87,6 +85,48 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'Both History entries open History and Home returns to the same dashboard',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(theme: AppTheme.dark, home: const HomeScreen()),
+      );
+      final home = tester.element(find.byType(HomeScreen));
+      for (final quickAction in [true, false]) {
+        await tapVisible(
+          tester,
+          quickAction
+              ? find.widgetWithText(ListTile, 'History')
+              : find.descendant(
+                  of: find.byType(NavigationBar),
+                  matching: find.text('History'),
+                ),
+        );
+        expect(find.byType(HistoryScreen), findsOneWidget);
+        expect(
+          tester
+              .widget<NavigationBar>(find.byType(NavigationBar))
+              .selectedIndex,
+          1,
+        );
+        await tapVisible(
+          tester,
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text('Home'),
+          ),
+        );
+        expect(tester.element(find.byType(HomeScreen)), same(home));
+        expect(
+          tester
+              .widgetList<DashboardStatCard>(find.byType(DashboardStatCard))
+              .every((card) => card.value == 0),
+          isTrue,
+        );
+      }
+    },
+  );
 
   for (final size in [const Size(320, 640), const Size(1000, 800)]) {
     testWidgets('Dashboard scrolls without overflow at $size', (tester) async {

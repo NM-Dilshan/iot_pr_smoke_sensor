@@ -6,7 +6,8 @@ import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.navigate = true});
+  final bool navigate;
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -17,6 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    if (!widget.navigate) return;
     _timer = Timer(const Duration(milliseconds: 2600), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(

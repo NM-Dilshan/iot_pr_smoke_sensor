@@ -73,7 +73,7 @@ void main() {
     );
   });
 
-  testWidgets('Countdown, sampling, injected reading, placeholder and retest', (
+  testWidgets('Countdown, sampling, injected reading, result and retest', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(320, 640);
@@ -104,21 +104,10 @@ void main() {
     expect(find.text('0.27'), findsOneWidget);
     await tap(tester, 'VIEW RESULT');
     await tester.pumpAndSettle();
-    expect(
-      find.text('Result classification will be implemented in Part 6.'),
-      findsOneWidget,
-    );
-    expect(find.text('Sensor Reading: 0.27'), findsOneWidget);
-    for (final label in [
-      'SAFE',
-      'CAUTION',
-      'DANGER',
-      'BAC %',
-      'Safe to drive',
-    ]) {
-      expect(find.text(label), findsNothing);
-    }
-    await tap(tester, 'DONE');
+    expect(find.text('Prototype Safety Classification'), findsOneWidget);
+    expect(find.text('CAUTION'), findsOneWidget);
+    expect(find.text('0.27'), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
     await tap(tester, 'RETEST');
     expect(find.text('Ready to Test'), findsOneWidget);

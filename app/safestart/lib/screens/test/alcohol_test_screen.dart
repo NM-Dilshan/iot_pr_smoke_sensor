@@ -1,3 +1,9 @@
+import '../../models/alcohol_test_result.dart';
+import '../../services/alcohol_classification_service.dart';
+import 'test_result_screen.dart';
+import '../../services/app_session.dart';
+import '../../services/completed_test_save.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -34,6 +40,9 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
   String? _error;
   bool _confirming = false;
   bool _allowLeave = false;
+  AlcoholTestResult? _completedResult;
+  CompletedTestSave? _save;
+  bool _viewingResult = false;
 
   bool get _active =>
       _state == AlcoholTestState.countdown ||
@@ -48,6 +57,8 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
       _samples = 0;
       _reading = null;
       _error = null;
+      _completedResult = null;
+      _save = null;
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_state == AlcoholTestState.countdown) {
@@ -78,6 +89,20 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
       setState(() {
         _reading = reading;
         _state = AlcoholTestState.completed;
+        _completedResult = AlcoholTestResult(
+          testType: widget.testType,
+          sensorReading: reading,
+          status: const AlcoholClassificationService().classify(reading),
+          timestamp: DateTime.now(),
+        );
+        final session = AppSession.maybeOf(context);
+        if (session != null) {
+          _save = CompletedTestSave(
+            session.history,
+            _completedResult!,
+            onSaved: session.changes.refresh,
+          );
+        }
       });
     } catch (_) {
       if (!mounted || run != _run) return;
@@ -92,6 +117,8 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
   void _reset() {
     _timer?.cancel();
     _run++;
+    _completedResult = null;
+    _save = null;
     setState(() {
       _state = AlcoholTestState.ready;
       _countdown = 3;
@@ -135,34 +162,17 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
     });
   }
 
-  void _viewResult() {
-    final reading = _reading;
-    if (reading == null) return;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Prototype Test Result'),
-        scrollable: true,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Result classification will be implemented in Part 6.'),
-            const SizedBox(height: 16),
-            Text('Test Type: ${widget.testType.label}'),
-            Text('Sensor Reading: ${reading.toStringAsFixed(2)}'),
-            const SizedBox(height: 12),
-            const Text('Simulated alcohol sensor reading'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('DONE'),
-          ),
-        ],
+  Future<void> _viewResult() async {
+    final result = _completedResult;
+    if (result == null || _viewingResult) return;
+    _viewingResult = true;
+    _save?.save();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TestResultScreen(result: result, save: _save),
       ),
     );
+    _viewingResult = false;
   }
 
   @override

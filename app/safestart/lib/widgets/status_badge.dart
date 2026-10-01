@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../models/safety_status.dart';
 
-enum SafetyStatus { safe, caution, danger }
+export '../models/safety_status.dart';
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status});

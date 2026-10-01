@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../services/auth_service.dart';
+import '../../models/user_profile.dart';
+
 import '../../theme/app_colors.dart';
 import '../../widgets/primary_button.dart';
 import 'auth_layout.dart';
@@ -9,7 +12,8 @@ import 'password_field.dart';
 enum _UserType { employee, driver }
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  const SignupScreen({super.key, this.auth});
+  final AuthService? auth;
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -23,6 +27,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
   _UserType _userType = _UserType.employee;
+  bool _busy = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -38,11 +44,42 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _createAccount() {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _createAccount() async {
+    if (_busy || !_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
-    // Development only: no account or credentials are persisted.
-    Navigator.of(context).pop(true);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      if (widget.auth == null) {
+        throw const AppFailure(
+          'Authentication is unavailable. Restart the app.',
+        );
+      }
+      await widget.auth!.signUp(
+        UserProfile(
+          fullName: _name.text.trim(),
+          employeeId: _employeeId.text.trim(),
+          email: _email.text.trim(),
+          userType: _userType == _UserType.driver
+              ? UserType.driver
+              : UserType.employee,
+        ),
+        _password.text,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _error = error is AppFailure
+              ? error.message
+              : 'Unable to create the account. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -162,7 +199,12 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          PrimaryButton(label: 'CREATE ACCOUNT', onPressed: _createAccount),
+          if (_error != null) Text(_error!),
+          PrimaryButton(
+            label: 'CREATE ACCOUNT',
+            onPressed: _createAccount,
+            isLoading: _busy,
+          ),
           const SizedBox(height: 24),
           Wrap(
             alignment: WrapAlignment.center,
@@ -170,7 +212,7 @@ class _SignupScreenState extends State<SignupScreen> {
             children: [
               const Text('Already have an account?'),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: _busy ? null : () => Navigator.of(context).pop(),
                 child: const Text('SIGN IN'),
               ),
             ],

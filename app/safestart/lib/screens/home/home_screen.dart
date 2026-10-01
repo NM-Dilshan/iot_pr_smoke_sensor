@@ -3,6 +3,14 @@ import 'package:flutter/material.dart';
 import '../../models/test_type.dart';
 import '../test/test_preparation_screen.dart';
 import '../test/test_selection_screen.dart';
+import '../history/history_screen.dart';
+import '../settings/settings_screen.dart';
+import '../settings/emergency_contact_screen.dart';
+import '../profile/profile_screen.dart';
+import '../../services/user_profile_repository.dart';
+import '../../services/app_session.dart';
+import '../../widgets/stored_dashboard.dart';
+import '../../services/demo_user_profile_repository.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/custom_card.dart';
@@ -11,7 +19,12 @@ import '../../widgets/main_navigation_bar.dart';
 import '../../widgets/test_option_card.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.profileRepository});
+  final UserProfileRepository? profileRepository;
+  UserProfileRepository _profiles(BuildContext context) =>
+      profileRepository ??
+      AppSession.maybeOf(context)?.profiles ??
+      DemoUserProfileRepository.session;
 
   void _message(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -24,12 +37,29 @@ class HomeScreen extends StatelessWidget {
     bottomNavigationBar: MainNavigationBar(
       selected: MainDestination.home,
       onSelected: (destination) {
+        if (destination == MainDestination.history) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  HistoryScreen(profileRepository: _profiles(context)),
+            ),
+          );
+          return;
+        }
+        if (destination == MainDestination.settings) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => SettingsScreen(repository: _profiles(context)),
+            ),
+          );
+          return;
+        }
         final message = switch (destination) {
           MainDestination.home => null,
-          MainDestination.history => 'History will be implemented later.',
+          MainDestination.history => null,
           MainDestination.notifications =>
             'Notifications will be implemented later.',
-          MainDestination.settings => 'Settings will be implemented later.',
+          MainDestination.settings => null,
         };
         if (message != null) _message(context, message);
       },
@@ -66,6 +96,16 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     IconButton(
+                      tooltip: 'Profile',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              ProfileScreen(repository: _profiles(context)),
+                        ),
+                      ),
+                      icon: const Icon(Icons.person_outline),
+                    ),
+                    IconButton(
                       tooltip: 'Notifications',
                       onPressed: () => _message(
                         context,
@@ -78,11 +118,14 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 28),
                 const Text('Welcome back'),
                 const SizedBox(height: 4),
-                Text(
-                  'Alex',
-                  style: Theme.of(context).textTheme.headlineLarge
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
+                if (AppSession.maybeOf(context) != null)
+                  StoredProfileName(repository: _profiles(context))
+                else
+                  Text(
+                    'Alex',
+                    style: Theme.of(context).textTheme.headlineLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
                 const SizedBox(height: 6),
                 const Text('Stay safe. Stay responsible.'),
                 const SizedBox(height: 24),
@@ -183,77 +226,85 @@ class HomeScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 28),
-                const _SectionTitle('Safety Overview'),
-                const Text(
-                  'DEMO / SAMPLE VALUES',
-                  style: TextStyle(
-                    color: AppColors.gold,
-                    fontSize: 12,
-                    letterSpacing: 1,
+                if (AppSession.maybeOf(context) != null)
+                  StoredDashboard(session: AppSession.maybeOf(context)!)
+                else ...[
+                  const _SectionTitle('Safety Overview'),
+                  const Text(
+                    'DEMO / SAMPLE VALUES',
+                    style: TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 12,
+                      letterSpacing: 1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final columns = constraints.maxWidth >= 650 ? 4 : 2;
-                    final width =
-                        (constraints.maxWidth - (columns - 1) * 12) / columns;
-                    return Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        for (final stat in const [
-                          (
-                            'Tests Today',
-                            Icons.fact_check_outlined,
-                            AppColors.gold,
-                          ),
-                          ('Safe', Icons.check_circle_outline, AppColors.safe),
-                          (
-                            'Caution',
-                            Icons.warning_amber_rounded,
-                            AppColors.caution,
-                          ),
-                          ('Danger', Icons.error_outline, AppColors.danger),
-                        ])
-                          SizedBox(
-                            width: width,
-                            child: DashboardStatCard(
-                              label: stat.$1,
-                              value: 0,
-                              icon: stat.$2,
-                              color: stat.$3,
+                  const SizedBox(height: 12),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns = constraints.maxWidth >= 650 ? 4 : 2;
+                      final width =
+                          (constraints.maxWidth - (columns - 1) * 12) / columns;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final stat in const [
+                            (
+                              'Tests Today',
+                              Icons.fact_check_outlined,
+                              AppColors.gold,
                             ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 28),
-                const _SectionTitle('Recent Activity'),
-                CustomCard(
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.history,
-                        color: AppColors.secondaryText,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'No tests recorded yet',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Your recent safety tests will appear here.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                            (
+                              'Safe',
+                              Icons.check_circle_outline,
+                              AppColors.safe,
+                            ),
+                            (
+                              'Caution',
+                              Icons.warning_amber_rounded,
+                              AppColors.caution,
+                            ),
+                            ('Danger', Icons.error_outline, AppColors.danger),
+                          ])
+                            SizedBox(
+                              width: width,
+                              child: DashboardStatCard(
+                                label: stat.$1,
+                                value: 0,
+                                icon: stat.$2,
+                                color: stat.$3,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: 28),
+                  const SizedBox(height: 28),
+                  const _SectionTitle('Recent Activity'),
+                  CustomCard(
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.history,
+                          color: AppColors.secondaryText,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'No tests recorded yet',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Your recent safety tests will appear here.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                ],
                 const _SectionTitle('Quick Actions'),
                 CustomCard(
                   padding: EdgeInsets.zero,
@@ -266,9 +317,12 @@ class HomeScreen extends StatelessWidget {
                         ),
                         title: const Text('History'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _message(
-                          context,
-                          'History will be implemented in a later step.',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => HistoryScreen(
+                              profileRepository: _profiles(context),
+                            ),
+                          ),
                         ),
                       ),
                       const Divider(height: 1),
@@ -279,9 +333,12 @@ class HomeScreen extends StatelessWidget {
                         ),
                         title: const Text('Emergency Contact'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _message(
-                          context,
-                          'Emergency Contact will be implemented in a later step.',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => EmergencyContactScreen(
+                              repository: _profiles(context),
+                            ),
+                          ),
                         ),
                       ),
                       const Divider(height: 1),
