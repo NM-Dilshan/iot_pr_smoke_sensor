@@ -352,11 +352,25 @@ void main() {
   );
   testWidgets('incomplete and cancelled tests do not save', (tester) async {
     final history = MemoryHistory();
-    await tester.pumpWidget(session(const HomeScreen(), history));
-    await tester.pumpAndSettle();
-    await tap(tester, 'START VEHICLE TEST');
-    await tap(tester, 'I have read the instructions and I am ready.');
-    await tap(tester, 'CONTINUE TO TEST');
+    await tester.pumpWidget(
+      session(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      const AlcoholTestScreen(testType: TestType.vehicle),
+                ),
+              ),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+        history,
+      ),
+    );
+    await tap(tester, 'Open');
     await tap(tester, 'START TEST');
     await tester.pump(const Duration(seconds: 1));
     await tester.tap(find.byType(BackButton));

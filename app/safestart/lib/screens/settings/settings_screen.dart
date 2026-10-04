@@ -1,3 +1,5 @@
+import '../../widgets/device_connection_view.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
@@ -211,18 +213,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ]),
-            _section('DEVICE', const [
-              ListTile(
-                leading: Icon(Icons.wifi_off),
-                title: Text('Device Connection'),
-                subtitle: Text('Not Connected'),
-              ),
-              ListTile(title: Text('Mode'), subtitle: Text('Demo Mode')),
-              ListTile(
-                title: Text('Future Device: ESP32 + MQ-3'),
-                subtitle: Text('Hardware integration will be added later.'),
-              ),
-            ]),
+            DeviceConnectionView(
+              builder: (context, device) => _section('DEVICE', [
+                ListTile(
+                  leading: Icon(Icons.wifi_off),
+                  title: Text('Device Connection'),
+                  subtitle: Text(
+                    device.connected ? 'Connected' : 'Not Connected',
+                  ),
+                ),
+                ListTile(
+                  title: const Text('Mode'),
+                  subtitle: Text(
+                    device.connected ? 'ESP32 Online' : 'ESP32 Offline',
+                  ),
+                ),
+                ListTile(
+                  title: Text('SafeStart Device: ESP32 + MQ-3'),
+                  subtitle: Text('Real sensor data via Wi-Fi.'),
+                ),
+              ]),
+            ),
             _section('APP', [
               ListTile(
                 leading: const Icon(Icons.info_outline),

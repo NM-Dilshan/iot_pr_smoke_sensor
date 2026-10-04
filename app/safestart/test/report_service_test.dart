@@ -54,7 +54,7 @@ void main() {
       );
       expect(text, contains('Stored User'));
       expect(text, contains('STORED-001'));
-      expect(text, contains('SAVED PROTOTYPE SIMULATION RECORDS'));
+      expect(text, contains('SAVED PROTOTYPE SENSOR RECORDS'));
       expect(text, isNot(contains('DEMO HISTORY')));
       expect(report.analytics.total, 1);
     },

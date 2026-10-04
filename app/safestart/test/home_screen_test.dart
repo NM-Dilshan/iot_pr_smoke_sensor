@@ -19,7 +19,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(theme: AppTheme.dark, home: const HomeScreen()),
     );
-    expect(find.text('Demo Mode'), findsOneWidget);
+    expect(find.text('ESP32 Offline'), findsOneWidget);
     expect(find.text('Not Connected'), findsOneWidget);
     expect(
       tester
@@ -54,7 +54,7 @@ void main() {
     }
     final actions = {
       'Device Status':
-          'ESP32 device is not connected. SafeStart is currently in Demo Mode.',
+          'SafeStart ESP32 is offline. Reconnecting automatically.',
     };
     for (final action in actions.entries) {
       await tapVisible(tester, find.widgetWithText(ListTile, action.key));

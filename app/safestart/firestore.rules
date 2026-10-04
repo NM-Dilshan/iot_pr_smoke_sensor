@@ -23,10 +23,14 @@ service cloud.firestore {
         && d.testType in ['vehicle', 'office']
         && d.sensorReading is number && d.sensorReading >= 0
         && (d.sensorReading - d.sensorReading) == 0
-        && ((d.sensorReading < 0.20 && d.status == 'safe')
+        && (((d.source == 'esp32_vehicle' && d.testType == 'vehicle'
+          || d.source == 'esp32_office' && d.testType == 'office')
+          && d.sensorReading <= 4095
+          && d.status in ['safe', 'caution', 'danger'])
+          || (d.source == 'simulation' && ((d.sensorReading < 0.20 && d.status == 'safe')
           || (d.sensorReading >= 0.20 && d.sensorReading < 0.40 && d.status == 'caution')
-          || (d.sensorReading >= 0.40 && d.status == 'danger'))
-        && d.timestamp is timestamp && d.source == 'simulation' && d.isPrototype == true;
+          || (d.sensorReading >= 0.40 && d.status == 'danger'))))
+        && d.timestamp is timestamp && d.source in ['simulation', 'esp32_vehicle', 'esp32_office'] && d.isPrototype == true;
     }
     match /users/{uid} {
       allow read: if owner(uid);

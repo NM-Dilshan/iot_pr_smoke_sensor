@@ -10,6 +10,8 @@ import '../profile/profile_screen.dart';
 import '../../services/user_profile_repository.dart';
 import '../../services/app_session.dart';
 import '../../widgets/stored_dashboard.dart';
+import '../../widgets/device_connection_view.dart';
+import '../../services/esp32_connection.dart';
 import '../../services/demo_user_profile_repository.dart';
 
 import '../../theme/app_colors.dart';
@@ -19,7 +21,8 @@ import '../../widgets/main_navigation_bar.dart';
 import '../../widgets/test_option_card.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, this.profileRepository});
+  const HomeScreen({super.key, this.profileRepository, this.connection});
+  final Esp32Connection? connection;
   final UserProfileRepository? profileRepository;
   UserProfileRepository _profiles(BuildContext context) =>
       profileRepository ??
@@ -33,331 +36,344 @@ class HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    bottomNavigationBar: MainNavigationBar(
-      selected: MainDestination.home,
-      onSelected: (destination) {
-        if (destination == MainDestination.history) {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) =>
-                  HistoryScreen(profileRepository: _profiles(context)),
-            ),
-          );
-          return;
-        }
-        if (destination == MainDestination.settings) {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => SettingsScreen(repository: _profiles(context)),
-            ),
-          );
-          return;
-        }
-        final message = switch (destination) {
-          MainDestination.home => null,
-          MainDestination.history => null,
-          MainDestination.notifications =>
-            'Notifications will be implemented later.',
-          MainDestination.settings => null,
-        };
-        if (message != null) _message(context, message);
-      },
-    ),
-    body: SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/safestart_logo.png',
-                        width: 44,
-                        height: 46,
-                        fit: BoxFit.cover,
-                        excludeFromSemantics: true,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'SafeStart',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.gold,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Profile',
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) =>
-                              ProfileScreen(repository: _profiles(context)),
-                        ),
-                      ),
-                      icon: const Icon(Icons.person_outline),
-                    ),
-                    IconButton(
-                      tooltip: 'Notifications',
-                      onPressed: () => _message(
-                        context,
-                        'Notifications will be available in a later step.',
-                      ),
-                      icon: const Icon(Icons.notifications_outlined),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                const Text('Welcome back'),
-                const SizedBox(height: 4),
-                if (AppSession.maybeOf(context) != null)
-                  StoredProfileName(repository: _profiles(context))
-                else
-                  Text(
-                    'Alex',
-                    style: Theme.of(context).textTheme.headlineLarge
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                const SizedBox(height: 6),
-                const Text('Stay safe. Stay responsible.'),
-                const SizedBox(height: 24),
-                CustomCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => DeviceConnectionView(
+    connection: connection,
+    builder: (context, device) => Scaffold(
+      bottomNavigationBar: MainNavigationBar(
+        selected: MainDestination.home,
+        onSelected: (destination) {
+          if (destination == MainDestination.history) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    HistoryScreen(profileRepository: _profiles(context)),
+              ),
+            );
+            return;
+          }
+          if (destination == MainDestination.settings) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SettingsScreen(repository: _profiles(context)),
+              ),
+            );
+            return;
+          }
+          final message = switch (destination) {
+            MainDestination.home => null,
+            MainDestination.history => null,
+            MainDestination.notifications =>
+              'Notifications will be implemented later.',
+            MainDestination.settings => null,
+          };
+          if (message != null) _message(context, message);
+        },
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 960),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
                     children: [
-                      const Text(
-                        'SYSTEM STATUS',
-                        style: TextStyle(
-                          color: AppColors.gold,
-                          fontSize: 12,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.w700,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'assets/images/safestart_logo.png',
+                          width: 44,
+                          height: 46,
+                          fit: BoxFit.cover,
+                          excludeFromSemantics: true,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Ready for Safety Test',
-                        style: Theme.of(context).textTheme.titleLarge,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'SafeStart',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: AppColors.gold,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
                       ),
-                      const SizedBox(height: 20),
-                      const Wrap(
-                        spacing: 24,
-                        runSpacing: 16,
-                        children: [
-                          _StatusDetail(
-                            icon: Icons.science_outlined,
-                            label: 'Device Status',
-                            value: 'Demo Mode',
+                      IconButton(
+                        tooltip: 'Profile',
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                ProfileScreen(repository: _profiles(context)),
                           ),
-                          _StatusDetail(
-                            icon: Icons.wifi_off_rounded,
-                            label: 'Connection',
-                            value: 'Not Connected',
-                          ),
-                        ],
+                        ),
+                        icon: const Icon(Icons.person_outline),
+                      ),
+                      IconButton(
+                        tooltip: 'Notifications',
+                        onPressed: () => _message(
+                          context,
+                          'Notifications will be available in a later step.',
+                        ),
+                        icon: const Icon(Icons.notifications_outlined),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 28),
-                const _SectionTitle('Start Safety Test'),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const TestSelectionScreen(),
-                      ),
+                  const SizedBox(height: 28),
+                  const Text('Welcome back'),
+                  const SizedBox(height: 4),
+                  if (AppSession.maybeOf(context) != null)
+                    StoredProfileName(repository: _profiles(context))
+                  else
+                    Text(
+                      'Alex',
+                      style: Theme.of(context).textTheme.headlineLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                    child: const Text('Choose test type'),
-                  ),
-                ),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth >= 650
-                        ? (constraints.maxWidth - 16) / 2
-                        : constraints.maxWidth;
-                    return Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
+                  const SizedBox(height: 6),
+                  const Text('Stay safe. Stay responsible.'),
+                  const SizedBox(height: 24),
+                  CustomCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: width,
-                          child: TestOptionCard(
-                            title: 'Vehicle Test',
-                            description: 'Check alcohol level before driving.',
-                            assetPath: 'assets/images/vehicle_test.png',
-                            actionLabel: 'START VEHICLE TEST',
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const TestPreparationScreen(
-                                  testType: TestType.vehicle,
-                                ),
-                              ),
-                            ),
+                        const Text(
+                          'SYSTEM STATUS',
+                          style: TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 12,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        SizedBox(
-                          width: width,
-                          child: TestOptionCard(
-                            title: 'Office Test',
-                            description: 'Perform workplace alcohol screening.',
-                            assetPath: 'assets/images/office_test.png',
-                            actionLabel: 'START OFFICE TEST',
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const TestPreparationScreen(
-                                  testType: TestType.office,
-                                ),
-                              ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Ready for Safety Test',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 20),
+                        Wrap(
+                          spacing: 24,
+                          runSpacing: 16,
+                          children: [
+                            _StatusDetail(
+                              icon: Icons.science_outlined,
+                              label: 'Device Status',
+                              value: device.connected
+                                  ? 'ESP32 Online'
+                                  : 'ESP32 Offline',
                             ),
-                          ),
+                            _StatusDetail(
+                              icon: device.connected
+                                  ? Icons.wifi
+                                  : Icons.wifi_off_rounded,
+                              label: 'Connection',
+                              value: device.connected
+                                  ? 'Connected'
+                                  : 'Not Connected',
+                            ),
+                          ],
                         ),
                       ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 28),
-                if (AppSession.maybeOf(context) != null)
-                  StoredDashboard(session: AppSession.maybeOf(context)!)
-                else ...[
-                  const _SectionTitle('Safety Overview'),
-                  const Text(
-                    'DEMO / SAMPLE VALUES',
-                    style: TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 12,
-                      letterSpacing: 1,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 28),
+                  const _SectionTitle('Start Safety Test'),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const TestSelectionScreen(),
+                        ),
+                      ),
+                      child: const Text('Choose test type'),
+                    ),
+                  ),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final columns = constraints.maxWidth >= 650 ? 4 : 2;
-                      final width =
-                          (constraints.maxWidth - (columns - 1) * 12) / columns;
+                      final width = constraints.maxWidth >= 650
+                          ? (constraints.maxWidth - 16) / 2
+                          : constraints.maxWidth;
                       return Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
+                        spacing: 16,
+                        runSpacing: 16,
                         children: [
-                          for (final stat in const [
-                            (
-                              'Tests Today',
-                              Icons.fact_check_outlined,
-                              AppColors.gold,
-                            ),
-                            (
-                              'Safe',
-                              Icons.check_circle_outline,
-                              AppColors.safe,
-                            ),
-                            (
-                              'Caution',
-                              Icons.warning_amber_rounded,
-                              AppColors.caution,
-                            ),
-                            ('Danger', Icons.error_outline, AppColors.danger),
-                          ])
-                            SizedBox(
-                              width: width,
-                              child: DashboardStatCard(
-                                label: stat.$1,
-                                value: 0,
-                                icon: stat.$2,
-                                color: stat.$3,
+                          SizedBox(
+                            width: width,
+                            child: TestOptionCard(
+                              title: 'Vehicle Test',
+                              description:
+                                  'Check alcohol level before driving.',
+                              assetPath: 'assets/images/vehicle_test.png',
+                              actionLabel: 'START VEHICLE TEST',
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const TestPreparationScreen(
+                                    testType: TestType.vehicle,
+                                  ),
+                                ),
                               ),
                             ),
+                          ),
+                          SizedBox(
+                            width: width,
+                            child: TestOptionCard(
+                              title: 'Office Test',
+                              description:
+                                  'Perform workplace alcohol screening.',
+                              assetPath: 'assets/images/office_test.png',
+                              actionLabel: 'START OFFICE TEST',
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const TestPreparationScreen(
+                                    testType: TestType.office,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       );
                     },
                   ),
                   const SizedBox(height: 28),
-                  const _SectionTitle('Recent Activity'),
+                  if (AppSession.maybeOf(context) != null)
+                    StoredDashboard(session: AppSession.maybeOf(context)!)
+                  else ...[
+                    const _SectionTitle('Safety Overview'),
+                    const Text(
+                      'DEMO / SAMPLE VALUES',
+                      style: TextStyle(
+                        color: AppColors.gold,
+                        fontSize: 12,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth >= 650 ? 4 : 2;
+                        final width =
+                            (constraints.maxWidth - (columns - 1) * 12) /
+                            columns;
+                        return Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            for (final stat in const [
+                              (
+                                'Tests Today',
+                                Icons.fact_check_outlined,
+                                AppColors.gold,
+                              ),
+                              (
+                                'Safe',
+                                Icons.check_circle_outline,
+                                AppColors.safe,
+                              ),
+                              (
+                                'Caution',
+                                Icons.warning_amber_rounded,
+                                AppColors.caution,
+                              ),
+                              ('Danger', Icons.error_outline, AppColors.danger),
+                            ])
+                              SizedBox(
+                                width: width,
+                                child: DashboardStatCard(
+                                  label: stat.$1,
+                                  value: 0,
+                                  icon: stat.$2,
+                                  color: stat.$3,
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 28),
+                    const _SectionTitle('Recent Activity'),
+                    CustomCard(
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.history,
+                            color: AppColors.secondaryText,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'No tests recorded yet',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Your recent safety tests will appear here.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                  ],
+                  const _SectionTitle('Quick Actions'),
                   CustomCard(
+                    padding: EdgeInsets.zero,
                     child: Column(
                       children: [
-                        const Icon(
-                          Icons.history,
-                          color: AppColors.secondaryText,
-                          size: 32,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.history,
+                            color: AppColors.gold,
+                          ),
+                          title: const Text('History'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => HistoryScreen(
+                                profileRepository: _profiles(context),
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'No tests recorded yet',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium,
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.contact_phone_outlined,
+                            color: AppColors.gold,
+                          ),
+                          title: const Text('Emergency Contact'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => EmergencyContactScreen(
+                                repository: _profiles(context),
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Your recent safety tests will appear here.',
-                          textAlign: TextAlign.center,
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.wifi_off_rounded,
+                            color: AppColors.gold,
+                          ),
+                          title: const Text('Device Status'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _message(
+                            context,
+                            device.connected ? 'SafeStart ESP32 is connected.' : 'SafeStart ESP32 is offline. Reconnecting automatically.',
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 28),
                 ],
-                const _SectionTitle('Quick Actions'),
-                CustomCard(
-                  padding: EdgeInsets.zero,
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(
-                          Icons.history,
-                          color: AppColors.gold,
-                        ),
-                        title: const Text('History'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => HistoryScreen(
-                              profileRepository: _profiles(context),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.contact_phone_outlined,
-                          color: AppColors.gold,
-                        ),
-                        title: const Text('Emergency Contact'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => EmergencyContactScreen(
-                              repository: _profiles(context),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.wifi_off_rounded,
-                          color: AppColors.gold,
-                        ),
-                        title: const Text('Device Status'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _message(
-                          context,
-                          'ESP32 device is not connected. SafeStart is currently in Demo Mode.',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

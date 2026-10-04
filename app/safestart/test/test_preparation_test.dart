@@ -61,7 +61,7 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(find.text('Demo Mode / Not Connected'), findsOneWidget);
+        expect(find.text('ESP32 Wi-Fi Device'), findsOneWidget);
         final button = find.widgetWithText(ElevatedButton, 'CONTINUE TO TEST');
         expect(tester.widget<ElevatedButton>(button).onPressed, isNull);
         await tapVisible(tester, find.byType(CheckboxListTile));
@@ -73,7 +73,7 @@ void main() {
         expect(find.text('${type.label} Alcohol Test'), findsOneWidget);
         expect(find.text('Test Type: ${type.label}'), findsOneWidget);
         expect(find.text('Ready to Test'), findsOneWidget);
-        expect(find.text('Using simulated sensor data'), findsOneWidget);
+        expect(find.text('Using real MQ-3 sensor data via Wi-Fi'), findsOneWidget);
         await tester.pageBack();
         await tester.pumpAndSettle();
         await tester.pageBack();

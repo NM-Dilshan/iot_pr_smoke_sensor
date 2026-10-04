@@ -24,7 +24,7 @@ class TestSelectionScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
-                const Text('Prototype safety test · Demo Mode / Not Connected'),
+                const Text('Prototype safety test | ESP32 + MQ-3'),
                 const SizedBox(height: 24),
                 LayoutBuilder(
                   builder: (context, constraints) {

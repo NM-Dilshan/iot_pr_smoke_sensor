@@ -83,7 +83,7 @@ void main() {
       expect(find.text('Password reset is not available yet.'), findsOneWidget);
       await tapVisible(tester, find.text('SIGN IN'));
       expect(find.byType(HomeScreen), findsOneWidget);
-      expect(find.text('Demo Mode'), findsOneWidget);
+      expect(find.text('ESP32 Offline'), findsOneWidget);
       expect(find.byType(LoginScreen), findsNothing);
     },
   );

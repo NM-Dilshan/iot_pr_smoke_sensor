@@ -231,7 +231,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               const Text('Review prototype alcohol sensor test records'),
               const SizedBox(height: 12),
               Text(
-                _production ? 'SAVED SIMULATION RECORDS' : 'DEMO DATA',
+                _production ? 'SAVED PROTOTYPE RECORDS' : 'DEMO DATA',
                 style: TextStyle(
                   color: AppColors.gold,
                   fontWeight: FontWeight.w700,

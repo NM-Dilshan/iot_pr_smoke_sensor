@@ -17,7 +17,9 @@ class HistoryDetailSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Prototype simulation record',
+            record.isEsp32Hardware
+                ? 'MQ-3 prototype sensor record'
+                : 'Prototype simulation record',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 20),
@@ -33,7 +35,11 @@ class HistoryDetailSheet extends StatelessWidget {
           const SizedBox(height: 8),
           StatusBadge(status: record.status),
           const SizedBox(height: 20),
-          const Text('Prototype simulation data; hardware is not connected.'),
+          Text(
+            record.isEsp32Hardware
+                ? 'Real ESP32 + MQ-3 sensor data via Wi-Fi.'
+                : 'Prototype simulation data; hardware is not connected.',
+          ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('CLOSE'),

@@ -131,7 +131,7 @@ class _StoredDashboardState extends State<StoredDashboard> {
             'Safety Overview · Today',
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const Text('Saved prototype simulation records'),
+          const Text('Saved prototype sensor records'),
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) => Wrap(

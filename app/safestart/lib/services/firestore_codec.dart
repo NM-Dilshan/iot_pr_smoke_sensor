@@ -58,8 +58,19 @@ class FirestoreCodec {
           },
   };
   static Map<String, dynamic> resultData(AlcoholTestResult result) {
-    if (const AlcoholClassificationService().classify(result.sensorReading) !=
-        result.status) {
+    if (!result.sensorReading.isFinite ||
+        result.sensorReading < 0 ||
+        (result.isEsp32Hardware &&
+            ((result.isEsp32Vehicle && result.testType != TestType.vehicle) ||
+                (result.isEsp32Office && result.testType != TestType.office) ||
+                result.sensorReading > 4095 ||
+                result.sensorReading !=
+                    result.sensorReading.truncateToDouble()))) {
+      throw const FormatException('Invalid sensor reading');
+    }
+    if (!result.isEsp32Hardware &&
+        const AlcoholClassificationService().classify(result.sensorReading) !=
+            result.status) {
       throw const FormatException('Invalid classification');
     }
     return {
@@ -67,7 +78,11 @@ class FirestoreCodec {
       'sensorReading': result.sensorReading,
       'status': result.status.name,
       'timestamp': Timestamp.fromDate(result.timestamp),
-      'source': 'simulation',
+      'source': result.isEsp32Vehicle
+          ? 'esp32_vehicle'
+          : result.isEsp32Office
+          ? 'esp32_office'
+          : 'simulation',
       'isPrototype': true,
     };
   }
@@ -84,7 +99,10 @@ class FirestoreCodec {
         reading is! num ||
         !reading.isFinite ||
         reading < 0 ||
-        (data['source'] != null && data['source'] != 'simulation') ||
+        (data['source'] != null &&
+            data['source'] != 'simulation' &&
+            data['source'] != 'esp32_vehicle' &&
+            data['source'] != 'esp32_office') ||
         (data['isPrototype'] != null && data['isPrototype'] != true)) {
       throw const FormatException('Malformed prototype record');
     }
@@ -93,6 +111,8 @@ class FirestoreCodec {
       sensorReading: reading.toDouble(),
       status: _enum(SafetyStatus.values, data['status']),
       timestamp: date,
+      isEsp32Vehicle: data['source'] == 'esp32_vehicle',
+      isEsp32Office: data['source'] == 'esp32_office',
     );
     resultData(result);
     return result;

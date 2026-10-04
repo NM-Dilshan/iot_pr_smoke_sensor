@@ -5,30 +5,31 @@ import '../models/sms_send_result.dart';
 import '../services/emergency_sms_service.dart';
 import '../services/user_profile_repository.dart';
 import '../screens/settings/emergency_contact_screen.dart';
-import 'primary_button.dart';
+import '../services/vehicle_emergency_alert.dart';
 
 class EmergencyAlertSection extends StatefulWidget {
   const EmergencyAlertSection({
     super.key,
     required this.profileRepository,
     required this.smsService,
+    this.automaticAlert,
   });
   final UserProfileRepository profileRepository;
   final EmergencySmsService smsService;
-  static const alertMessage =
-      'SafeStart Alert: A high prototype alcohol sensor reading was detected during a Vehicle Safety Test. Please check on the user.';
+  final VehicleEmergencyAlert? automaticAlert;
+  static const alertMessage = VehicleEmergencyAlert.message;
   @override
   State<EmergencyAlertSection> createState() => _EmergencyAlertSectionState();
 }
 
 class _EmergencyAlertSectionState extends State<EmergencyAlertSection> {
   EmergencyContact? _contact;
-  bool _loading = true, _loadFailed = false, _confirming = false;
+  bool _loading = true, _loadFailed = false;
   SmsSendResult _result = const SmsSendResult(SmsStatus.idle);
   @override
   void initState() {
     super.initState();
-    _load();
+    if (widget.automaticAlert == null) _load();
   }
 
   Future<void> _load() async {
@@ -66,56 +67,48 @@ class _EmergencyAlertSectionState extends State<EmergencyAlertSection> {
     if (mounted) await _load();
   }
 
-  Future<void> _send() async {
-    if (_confirming ||
-        _result.status == SmsStatus.sending ||
-        _result.status == SmsStatus.sent ||
-        _contact == null) {
-      return;
-    }
-    setState(() => _confirming = true);
-    final contact = _contact!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Send emergency alert?'),
-        scrollable: true,
-        content: Text(
-          "This will send an SMS to ${contact.name} at ${contact.phoneNumber} using this phone's SIM.\n\nThe sensor result is simulated. Sending SMS is real and carrier charges may apply.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('SEND SMS'),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    setState(() {
-      _confirming = false;
-      if (confirmed == true) _result = const SmsSendResult(SmsStatus.sending);
-    });
-    if (confirmed != true) return;
-    try {
-      final result = await widget.smsService.sendEmergencyAlert(
-        phoneNumber: contact.phoneNumber,
-        message: EmergencyAlertSection.alertMessage,
-      );
-      if (mounted) setState(() => _result = result);
-    } catch (_) {
-      if (mounted) {
-        setState(() => _result = const SmsSendResult(SmsStatus.failed));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final alert = widget.automaticAlert;
+    if (alert != null) {
+      return AnimatedBuilder(
+        animation: alert,
+        builder: (context, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Emergency Contact Alert',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            if (alert.contact != null) ...[
+              Text(alert.contact!.name),
+              Text(alert.contact!.phoneNumber),
+            ],
+            Text(switch (alert.result.status) {
+              SmsStatus.sending => 'Sending emergency alert...',
+              SmsStatus.sent => 'Emergency alert sent',
+              SmsStatus.noEmergencyContact =>
+                'No emergency contact configured.',
+              SmsStatus.permissionDenied =>
+                'SMS permission is required to send the emergency alert.',
+              SmsStatus.unsupported => 'SMS is not supported on this device.',
+              SmsStatus.failed => 'Emergency alert could not be sent.',
+              SmsStatus.idle => 'Emergency alert pending.',
+            }),
+            if (alert.result.message != null) Text(alert.result.message!),
+            if (alert.result.permanentlyDenied)
+              const Text(
+                'Open Android Settings > Apps > SafeStart > Permissions and allow SMS for future tests.',
+              ),
+            if (alert.result.status == SmsStatus.sent)
+              const Text(
+                'This confirms sending, not delivery to the recipient.',
+              ),
+          ],
+        ),
+      );
+    }
     final status = _result.status;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -150,7 +143,7 @@ class _EmergencyAlertSectionState extends State<EmergencyAlertSection> {
             SmsStatus.permissionDenied =>
               'SMS permission is required to send the emergency alert.',
             SmsStatus.unsupported => 'SMS is not supported on this device.',
-            _ => 'No SMS sent. Confirmation is required.',
+            _ => 'Automatic alerts apply only to a newly completed Vehicle device test.',
           }),
           if (status == SmsStatus.sent) ...[
             Text('SMS sent to ${_contact!.name}.'),
@@ -162,18 +155,6 @@ class _EmergencyAlertSectionState extends State<EmergencyAlertSection> {
               'Open Android Settings > Apps > SafeStart > Permissions and allow SMS. Then return to this result and try again.',
             ),
           const SizedBox(height: 16),
-          if (status != SmsStatus.sent &&
-              status != SmsStatus.unsupported &&
-              _result.canRetry)
-            PrimaryButton(
-              label: status == SmsStatus.idle
-                  ? 'SEND EMERGENCY ALERT'
-                  : 'TRY AGAIN',
-              isLoading: status == SmsStatus.sending,
-              onPressed: _confirming || status == SmsStatus.sending
-                  ? null
-                  : _send,
-            ),
         ],
       ],
     );

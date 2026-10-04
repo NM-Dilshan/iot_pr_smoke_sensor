@@ -8,6 +8,7 @@ import 'package:safestart/screens/test/alcohol_test_screen.dart';
 import 'package:safestart/screens/test/test_preparation_screen.dart';
 import 'package:safestart/screens/test/test_result_screen.dart';
 import 'package:safestart/theme/app_theme.dart';
+import 'package:safestart/services/mock_alcohol_sensor_service.dart';
 
 Future<void> tap(WidgetTester tester, String text) async {
   await tester.ensureVisible(find.text(text));
@@ -99,6 +100,16 @@ void main() {
         await tap(tester, 'START ${type.label.toUpperCase()} TEST');
         await tap(tester, 'I have read the instructions and I am ready.');
         await tap(tester, 'CONTINUE TO TEST');
+        final testContext = tester.element(find.byType(AlcoholTestScreen));
+        Navigator.of(testContext).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => AlcoholTestScreen(
+              testType: type,
+              sensorService: const MockAlcoholSensorService(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
         await tap(tester, 'START TEST');
         for (var i = 0; i < 8; i++) {
           await tester.pump(const Duration(seconds: 1));
@@ -140,6 +151,16 @@ void main() {
         expect(find.text('Ready to Test'), findsOneWidget);
         expect(find.text('0.18'), findsNothing);
         expect(find.text('VIEW RESULT'), findsNothing);
+        Navigator.of(tester.element(find.byType(AlcoholTestScreen)))
+            .pushReplacement(
+              MaterialPageRoute<void>(
+                builder: (_) => AlcoholTestScreen(
+                  testType: type,
+                  sensorService: const MockAlcoholSensorService(),
+                ),
+              ),
+            );
+        await tester.pumpAndSettle();
         await tap(tester, 'START TEST');
         for (var i = 0; i < 8; i++) {
           await tester.pump(const Duration(seconds: 1));

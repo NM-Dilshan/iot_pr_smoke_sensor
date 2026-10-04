@@ -77,7 +77,7 @@ class ReportService {
               pw.Text(
                 report.isDemo
                     ? 'DEMO HISTORY - DEMO DATA'
-                    : 'SAVED PROTOTYPE SIMULATION RECORDS',
+                    : 'SAVED PROTOTYPE SENSOR RECORDS',
                 style: pw.TextStyle(color: gold, fontSize: 10),
               ),
             ],

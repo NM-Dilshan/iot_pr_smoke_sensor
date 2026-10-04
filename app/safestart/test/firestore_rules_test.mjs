@@ -40,4 +40,27 @@ const bad = structuredClone(record); bad.update.name = `${root}/users/alice/test
 await status(await request(':commit','alice',{writes:[bad]}),403,'incorrect classification rejected');
 const hardware = structuredClone(record); hardware.update.name = `${root}/users/alice/tests/hardware`; hardware.update.fields.source = stringValue('hardware');
 await status(await request(':commit','alice',{writes:[hardware]}),403,'hardware claim rejected');
-console.log('15 Firestore rule checks passed against the local emulator.');
+for (const safety of ['safe', 'caution', 'danger']) {
+  const vehicle = structuredClone(record);
+  vehicle.update.name = `${root}/users/alice/tests/vehicle-${safety}`;
+  vehicle.update.fields.source = stringValue('esp32_vehicle');
+  vehicle.update.fields.sensorReading = {doubleValue:320};
+  vehicle.update.fields.status = stringValue(safety);
+  await status(await request(':commit','alice',{writes:[vehicle]}),200,`authoritative vehicle ${safety}`);
+  vehicle.update.name += '-office';
+  vehicle.update.fields.testType = stringValue('office');
+  await status(await request(':commit','alice',{writes:[vehicle]}),403,'vehicle source cannot claim Office');
+}
+for (const safety of ['safe', 'caution', 'danger']) {
+  const office = structuredClone(record);
+  office.update.name = `${root}/users/alice/tests/office-${safety}`;
+  office.update.fields.source = stringValue('esp32_office');
+  office.update.fields.testType = stringValue('office');
+  office.update.fields.sensorReading = {doubleValue:762};
+  office.update.fields.status = stringValue(safety);
+  await status(await request(':commit','alice',{writes:[office]}),200,`authoritative office ${safety}`);
+  office.update.name += '-vehicle';
+  office.update.fields.testType = stringValue('vehicle');
+  await status(await request(':commit','alice',{writes:[office]}),403,'office source cannot claim Vehicle');
+}
+console.log('27 Firestore rule checks passed against the local emulator.');

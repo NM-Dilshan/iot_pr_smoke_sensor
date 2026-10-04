@@ -46,7 +46,7 @@ void main() {
       expect(find.byType(SettingsScreen), findsOneWidget);
       expect(find.text('DEMO PROFILE'), findsOneWidget);
       expect(find.text('Not Connected'), findsOneWidget);
-      expect(find.text('Demo Mode'), findsOneWidget);
+      expect(find.text('ESP32 Offline'), findsOneWidget);
       expect(
         find.text('SMS permission will be requested when an alert is sent.'),
         findsOneWidget,

@@ -183,7 +183,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ready to Test'), findsOneWidget);
     expect(
-      find.text('Unable to collect the simulated reading. Please try again.'),
+      find.text('Unable to collect the sensor reading. Check the device connection and try again.'),
       findsOneWidget,
     );
     expect(find.text('Sample Collected'), findsNothing);

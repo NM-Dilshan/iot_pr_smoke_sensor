@@ -15,6 +15,7 @@ import '../../widgets/emergency_alert_section.dart';
 import '../../services/app_session.dart';
 import '../../services/completed_test_save.dart';
 import '../../widgets/test_save_status.dart';
+import '../../services/vehicle_emergency_alert.dart';
 
 class TestResultScreen extends StatelessWidget {
   const TestResultScreen({
@@ -22,9 +23,11 @@ class TestResultScreen extends StatelessWidget {
     required this.result,
     this.profileRepository,
     this.save,
+    this.automaticAlert,
     this.smsService = const AndroidEmergencySmsService(),
   });
   final AlcoholTestResult result;
+  final VehicleEmergencyAlert? automaticAlert;
   final UserProfileRepository? profileRepository;
   final CompletedTestSave? save;
   final EmergencySmsService smsService;
@@ -49,27 +52,31 @@ class TestResultScreen extends StatelessWidget {
         'A high sensor reading was detected by the prototype.',
       ),
     };
-    final title = vehicle
+    final title = result.isEsp32Office
+        ? 'Office Access Result'
+        : vehicle
         ? (result.status == SafetyStatus.danger
               ? 'Vehicle Safety Alert'
               : 'Vehicle Safety Status')
         : (result.status == SafetyStatus.danger
               ? 'Office Safety Alert'
               : 'Office Screening Status');
-    final detail = switch ((result.testType, result.status)) {
-      (TestType.vehicle, SafetyStatus.safe) =>
-        'No restriction triggered by the prototype.',
-      (TestType.vehicle, SafetyStatus.caution) =>
-        'Proceeding is not recommended until the test is repeated.',
-      (TestType.vehicle, SafetyStatus.danger) =>
-        'Vehicle access would be restricted in the final SafeStart system.',
-      (TestType.office, SafetyStatus.safe) =>
-        'No alert triggered by the prototype.',
-      (TestType.office, SafetyStatus.caution) =>
-        'A repeat screening may be appropriate.',
-      (TestType.office, SafetyStatus.danger) =>
-        'High sensor reading detected by the prototype workplace screening.',
-    };
+    final detail = result.isEsp32Office
+        ? (result.status == SafetyStatus.safe
+              ? 'SafeStart gate access was granted.'
+              : 'SafeStart gate access was denied.')
+        : switch ((result.testType, result.status)) {
+            (TestType.vehicle, SafetyStatus.safe) =>
+              'No restriction triggered by the prototype.',
+            (TestType.vehicle, SafetyStatus.caution) =>
+              'Proceeding is not recommended until the test is repeated.',
+            (TestType.vehicle, SafetyStatus.danger) => 'Vehicle access would be restricted in the final SafeStart system.',
+            (TestType.office, SafetyStatus.safe) =>
+              'No alert triggered by the prototype.',
+            (TestType.office, SafetyStatus.caution) =>
+              'A repeat screening may be appropriate.',
+            (TestType.office, SafetyStatus.danger) => 'High sensor reading detected by the prototype workplace screening.',
+          };
     final localTime = result.timestamp.toLocal();
     final locale = MaterialLocalizations.of(context);
     return Scaffold(
@@ -89,8 +96,10 @@ class TestResultScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'DEMO MODE · SIMULATED READING',
+                  Text(
+                    result.isEsp32Hardware
+                        ? 'ESP32 CONNECTED | ESP32 + MQ-3'
+                        : 'DEMO MODE · SIMULATED READING',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.gold, fontSize: 12),
                   ),
@@ -114,7 +123,19 @@ class TestResultScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         StatusBadge(status: result.status),
                         const SizedBox(height: 20),
-                        const Text('Prototype Sensor Reading'),
+                        if (result.isEsp32Office) ...[
+                          Text(
+                            result.status == SafetyStatus.safe
+                                ? 'ACCESS GRANTED'
+                                : 'ACCESS DENIED',
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        Text(
+                          result.isEsp32Office
+                              ? 'MQ-3 Prototype Sensor Reading'
+                              : 'Prototype Sensor Reading',
+                        ),
                         Text(
                           result.sensorReading.toStringAsFixed(2),
                           style: Theme.of(context).textTheme.displayMedium
@@ -153,6 +174,7 @@ class TestResultScreen extends StatelessWidget {
                                 AppSession.maybeOf(context)?.profiles ??
                                 DemoUserProfileRepository.session,
                             smsService: smsService,
+                            automaticAlert: automaticAlert,
                           ),
                         ],
                       ],
@@ -175,7 +197,7 @@ class TestResultScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'This result is produced by the SafeStart prototype and is not a certified BAC measurement.',
+                    'This is an uncalibrated MQ-3 prototype sensor reading.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),

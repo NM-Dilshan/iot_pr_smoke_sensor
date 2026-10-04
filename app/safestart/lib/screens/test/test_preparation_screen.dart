@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../../models/test_type.dart';
-import 'alcohol_test_screen.dart';
+import '../../services/esp32_alcohol_sensor_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/instruction_step.dart';
 import '../../widgets/primary_button.dart';
+import 'alcohol_test_screen.dart';
 
 class TestPreparationScreen extends StatefulWidget {
-  const TestPreparationScreen({super.key, required this.testType});
+  const TestPreparationScreen({
+    super.key,
+    required this.testType,
+  });
 
   final TestType testType;
 
   @override
-  State<TestPreparationScreen> createState() => _TestPreparationScreenState();
+  State<TestPreparationScreen> createState() =>
+      _TestPreparationScreenState();
 }
 
 class _TestPreparationScreenState extends State<TestPreparationScreen> {
@@ -21,9 +26,15 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
 
   void _continue() {
     if (!_ready) return;
+
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => AlcoholTestScreen(testType: widget.testType),
+        builder: (_) => AlcoholTestScreen(
+          testType: widget.testType,
+          sensorService: Esp32AlcoholSensorService(
+            testType: widget.testType,
+          ),
+        ),
       ),
     );
   }
@@ -31,6 +42,7 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
   @override
   Widget build(BuildContext context) {
     final vehicle = widget.testType == TestType.vehicle;
+
     final instructions = vehicle
         ? const [
             'Make sure you are not eating or drinking.',
@@ -46,8 +58,11 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
             'Do not eat or drink during the test.',
             'Continue when ready.',
           ];
+
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.testType.label} Safety Test')),
+      appBar: AppBar(
+        title: Text('${widget.testType.label} Safety Test'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -63,7 +78,9 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
                         : 'Prepare for workplace alcohol screening',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
+
                   const SizedBox(height: 20),
+
                   Center(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
@@ -75,7 +92,9 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   CustomCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,25 +102,38 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
                         const Text('Test Type'),
                         Text(
                           widget.testType.label,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(color: AppColors.gold),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                color: AppColors.gold,
+                              ),
                         ),
+
                         const SizedBox(height: 16),
+
                         const Text('Device Status'),
                         const SizedBox(height: 4),
+
                         const Text(
-                          'Demo Mode / Not Connected',
-                          style: TextStyle(color: AppColors.gold),
+                          'ESP32 Wi-Fi Device',
+                          style: TextStyle(
+                            color: AppColors.gold,
+                          ),
                         ),
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 24),
+
                   Text(
                     'Preparation instructions',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
+
                   const SizedBox(height: 12),
+
                   for (var i = 0; i < instructions.length; i++)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -110,7 +142,9 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
                         instruction: instructions[i],
                       ),
                     ),
+
                   const SizedBox(height: 8),
+
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
@@ -120,14 +154,20 @@ class _TestPreparationScreenState extends State<TestPreparationScreen> {
                       'I have read the instructions and I am ready.',
                     ),
                     value: _ready,
-                    onChanged: (value) =>
-                        setState(() => _ready = value ?? false),
+                    onChanged: (value) {
+                      setState(
+                        () => _ready = value ?? false,
+                      );
+                    },
                   ),
+
                   const SizedBox(height: 16),
+
                   PrimaryButton(
                     label: 'CONTINUE TO TEST',
                     onPressed: _ready ? _continue : null,
                   ),
+
                   const SizedBox(height: 12),
                 ],
               ),
