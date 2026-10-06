@@ -136,61 +136,66 @@ void main() {
     },
   );
 
-  testWidgets(
-    'About, Help, History, notifications and logout preserve navigation',
-    (tester) async {
-      final repository = DemoUserProfileRepository();
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.dark,
-          home: HomeScreen(profileRepository: repository),
-        ),
-      );
-      final home = tester.element(find.byType(HomeScreen));
-      await tap(tester, nav('Settings'));
-      await tap(tester, find.text('About SafeStart'));
-      expect(
-        find.textContaining('not a certified breathalyzer'),
-        findsOneWidget,
-      );
-      await tap(tester, find.text('CLOSE'));
-      await tap(tester, find.widgetWithText(ListTile, 'Help / Instructions'));
-      expect(find.textContaining('6. Use History'), findsOneWidget);
-      await tap(tester, find.text('CLOSE'));
-      await tap(tester, nav('Notifications'));
-      expect(
-        find.text('Notifications will be implemented later.'),
-        findsOneWidget,
-      );
-      await tap(tester, nav('History'));
-      expect(find.byType(HistoryScreen), findsOneWidget);
-      expect(find.text('DEMO DATA'), findsOneWidget);
-      await tap(tester, nav('Settings'));
-      expect(find.byType(SettingsScreen, skipOffstage: false), findsOneWidget);
-      await tap(tester, nav('Home'));
-      expect(tester.element(find.byType(HomeScreen)), same(home));
-      await tap(tester, nav('Settings'));
-      await tap(tester, find.text('LOG OUT'));
-      expect(find.text('Log out of SafeStart?'), findsOneWidget);
-      await tap(tester, find.text('CANCEL'));
-      expect(find.byType(SettingsScreen), findsOneWidget);
-      await tap(tester, find.text('LOG OUT'));
-      await tap(
-        tester,
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.text('LOG OUT'),
-        ),
-      );
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.byType(HomeScreen, skipOffstage: false), findsNothing);
-      expect(find.byType(SettingsScreen, skipOffstage: false), findsNothing);
-      expect(
-        Navigator.of(tester.element(find.byType(LoginScreen))).canPop(),
-        isFalse,
-      );
-    },
-  );
+  testWidgets('About, Help, remaining tabs and logout preserve navigation', (
+    tester,
+  ) async {
+    final repository = DemoUserProfileRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: HomeScreen(profileRepository: repository),
+      ),
+    );
+    final home = tester.element(find.byType(HomeScreen));
+    await tap(tester, nav('Settings'));
+    await tap(tester, find.text('About SafeStart'));
+    expect(find.textContaining('not a certified breathalyzer'), findsOneWidget);
+    await tap(tester, find.text('CLOSE'));
+    await tap(tester, find.widgetWithText(ListTile, 'Help / Instructions'));
+    expect(find.textContaining('6. Use History'), findsOneWidget);
+    await tap(tester, find.text('CLOSE'));
+    expect(find.text('Notifications'), findsNothing);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      2,
+    );
+    await tap(tester, nav('History'));
+    expect(find.byType(HistoryScreen), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      1,
+    );
+    expect(find.text('Notifications'), findsNothing);
+    expect(find.text('DEMO DATA'), findsOneWidget);
+    await tap(tester, nav('Settings'));
+    expect(find.byType(SettingsScreen, skipOffstage: false), findsOneWidget);
+    await tap(tester, nav('Home'));
+    expect(tester.element(find.byType(HomeScreen)), same(home));
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      0,
+    );
+    await tap(tester, nav('Settings'));
+    await tap(tester, find.text('LOG OUT'));
+    expect(find.text('Log out of SafeStart?'), findsOneWidget);
+    await tap(tester, find.text('CANCEL'));
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    await tap(tester, find.text('LOG OUT'));
+    await tap(
+      tester,
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('LOG OUT'),
+      ),
+    );
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(HomeScreen, skipOffstage: false), findsNothing);
+    expect(find.byType(SettingsScreen, skipOffstage: false), findsNothing);
+    expect(
+      Navigator.of(tester.element(find.byType(LoginScreen))).canPop(),
+      isFalse,
+    );
+  });
 
   testWidgets(
     'New forms scroll on a narrow screen with keyboard and large text',

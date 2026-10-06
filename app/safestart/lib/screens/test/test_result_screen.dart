@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../models/alcohol_test_result.dart';
 import '../../models/test_type.dart';
@@ -23,6 +24,7 @@ class TestResultScreen extends StatelessWidget {
     required this.result,
     this.profileRepository,
     this.save,
+    this.officeGate,
     this.automaticAlert,
     this.smsService = const AndroidEmergencySmsService(),
   });
@@ -30,6 +32,7 @@ class TestResultScreen extends StatelessWidget {
   final VehicleEmergencyAlert? automaticAlert;
   final UserProfileRepository? profileRepository;
   final CompletedTestSave? save;
+  final ValueListenable<String?>? officeGate;
   final EmergencySmsService smsService;
 
   @override
@@ -201,6 +204,14 @@ class TestResultScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
+                  if (result.isEsp32Office && officeGate != null)
+                    ValueListenableBuilder<String?>(
+                      valueListenable: officeGate!,
+                      builder: (context, gate, _) => Text(
+                        gate == null ? 'Gate state unavailable' : 'GATE $gate',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   if (save != null)
                     TestSaveStatus(save: save!)
                   else

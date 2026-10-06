@@ -33,6 +33,22 @@ class Esp32AlcoholSensorService implements AlcoholSensorService {
     );
   }
 
+  String? lastOfficeGate;
+
+  Future<String> readOfficeGate() async {
+    final status = await _esp32Service.getStatus();
+    return _validatedGate(status.gate);
+  }
+
+  String _validatedGate(String gate) {
+    if (gate != 'OPEN' && gate != 'CLOSED') {
+      throw const Esp32Exception(
+        'Invalid gate state from the SafeStart device.',
+      );
+    }
+    return gate;
+  }
+
   Future<void> startOfficeTest() => _esp32Service.startOfficeTest();
 
   Future<AlcoholTestResult?> pollOfficeResult() async {
@@ -63,6 +79,7 @@ class Esp32AlcoholSensorService implements AlcoholSensorService {
         diagnostic: 'GET /status: invalid $invalid',
       );
     }
+    lastOfficeGate = _validatedGate(status.gate);
     if (state != 'COMPLETED') return null;
     final safety = switch (result) {
       'SAFE' => SafetyStatus.safe,

@@ -185,6 +185,7 @@ void main() {
         final history = MemoryHistory();
         final start = Completer<http.Response>();
         var completed = false;
+        var gateOpen = safety == SafetyStatus.safe;
         final paths = <String>[];
         final device = sensor(
           Esp32Service(
@@ -196,6 +197,7 @@ void main() {
                   office(
                     state: completed ? 'COMPLETED' : 'SAMPLING',
                     result: completed ? safety.name.toUpperCase() : 'PENDING',
+                    gate: completed && gateOpen ? 'OPEN' : 'CLOSED',
                   ),
                 ),
                 200,
@@ -222,7 +224,7 @@ void main() {
         expect(find.text('1'), findsOneWidget);
         await tester.pump(const Duration(seconds: 1));
         expect(find.text('BLOW NOW'), findsOneWidget);
-        for (var i = 0; i < 5; i++) {
+        for (var i = 0; i < 10; i++) {
           await tester.pump(const Duration(seconds: 1));
         }
         expect(history.attempts, isEmpty);
@@ -231,6 +233,21 @@ void main() {
         completed = true;
         await tester.pump(const Duration(milliseconds: 350));
         await tester.pump();
+        expect(history.attempts.length, 1);
+        expect(
+          find.text(gateOpen ? 'GATE OPEN' : 'GATE CLOSED'),
+          findsOneWidget,
+        );
+        if (!gateOpen) expect(find.text('GATE OPEN'), findsNothing);
+        // Repeated COMPLETED status while observing the actual servo state.
+        for (var i = 0; i < 6; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+        gateOpen = false;
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pump();
+        expect(find.text('GATE CLOSED'), findsOneWidget);
+        expect(history.attempts.length, 1);
         await tap(tester, 'VIEW RESULT');
         await tester.pumpAndSettle();
         expect(find.text('Office Access Result'), findsOneWidget);
@@ -246,6 +263,8 @@ void main() {
         expect(find.text('SEND EMERGENCY ALERT'), findsNothing);
         expect(find.textContaining('Vehicle'), findsNothing);
         expect(find.textContaining('DEMO MODE'), findsNothing);
+        expect(find.text('GATE CLOSED'), findsOneWidget);
+        expect(history.attempts.length, 1);
         expect(history.records.values.single.status, safety);
         expect(history.records.values.single.isEsp32Office, true);
         expect(paths.first, '/office/start');
@@ -253,6 +272,117 @@ void main() {
           paths.where((p) => p != '/office/start').every((p) => p == '/status'),
           true,
         );
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+  testWidgets(
+    'Office result screen tracks reported OPEN then CLOSED without resaving',
+    (tester) async {
+      final history = MemoryHistory();
+      var gate = 'OPEN';
+      var reachable = true;
+      final device = sensor(
+        Esp32Service(
+          client: MockClient((request) async {
+            if (request.method == 'POST') {
+              return http.Response('{"success":true}', 200);
+            }
+            if (!reachable) throw http.ClientException('offline');
+            return http.Response(jsonEncode(office(gate: gate)), 200);
+          }),
+        ),
+      );
+      await tester.pumpWidget(session(device, history));
+      expect(find.text('GATE OPEN'), findsNothing);
+      await tap(tester, 'START TEST');
+      await tester.pump();
+      expect(history.attempts.length, 1);
+      await tap(tester, 'VIEW RESULT');
+      await tester.pumpAndSettle();
+      expect(find.text('GATE OPEN'), findsOneWidget);
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      gate = 'CLOSED';
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      expect(find.text('GATE CLOSED'), findsOneWidget);
+      expect(find.text('GATE OPEN'), findsNothing);
+      reachable = false;
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      expect(find.text('Gate state unavailable'), findsOneWidget);
+      expect(history.attempts.length, 1);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  for (final type in TestType.values) {
+    testWidgets(
+      '${type.name} ten second progress and late completion auto-save once',
+      (tester) async {
+        final history = MemoryHistory();
+        var completed = false;
+        final service = Esp32Service(
+          client: MockClient((request) async {
+            if (request.method == 'POST') {
+              return http.Response('{"success":true}', 200);
+            }
+            final data = office(
+              state: completed ? 'COMPLETED' : 'SAMPLING',
+              result: completed ? 'SAFE' : 'PENDING',
+            );
+            data['vehicleTestState'] = completed ? 'COMPLETED' : 'SAMPLING';
+            data['vehicleTestResult'] = completed ? 'SAFE' : 'PENDING';
+            data['vehicleTestActive'] = !completed;
+            return http.Response(jsonEncode(data), 200);
+          }),
+        );
+        final device = Esp32AlcoholSensorService(
+          testType: type,
+          esp32Service: service,
+        );
+        await tester.pumpWidget(
+          AppSession(
+            auth: FakeAuthService(userId: 'u'),
+            profiles: DemoUserProfileRepository(),
+            history: history,
+            changes: SessionChanges(),
+            child: MaterialApp(
+              home: AlcoholTestScreen(testType: type, sensorService: device),
+            ),
+          ),
+        );
+        await tap(tester, 'START TEST');
+        await tester.pump();
+        for (var i = 0; i < 3; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+        expect(find.text('BLOW NOW'), findsOneWidget);
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+        expect(find.text('50%'), findsOneWidget);
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+        expect(find.text('100%'), findsOneWidget);
+        expect(history.attempts, isEmpty);
+        // Completion after the previous 20-second timeout must still be accepted.
+        for (var i = 0; i < 11; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+        completed = true;
+        await tester.pump(const Duration(milliseconds: 350));
+        await tester.pump();
+        expect(history.attempts.length, 1);
+        expect(history.records.values.single.testType, type);
+        await tester.pump(const Duration(seconds: 1));
+        expect(history.attempts.length, 1);
+        await tap(tester, 'VIEW RESULT');
+        await tester.pumpAndSettle();
+        expect(history.attempts.length, 1);
         await tester.pumpWidget(const SizedBox());
       },
     );
@@ -301,7 +431,7 @@ void main() {
       );
       await tester.pumpWidget(session(device, history));
       await tap(tester, 'START TEST');
-      for (var i = 0; i < 22; i++) {
+      for (var i = 0; i < 32; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
       expect(

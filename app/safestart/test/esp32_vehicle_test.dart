@@ -345,7 +345,7 @@ void main() {
           ),
         );
         await tester.pump();
-        for (var i = 0; i < 8; i++) {
+        for (var i = 0; i < 13; i++) {
           await tester.pump(const Duration(seconds: 1));
         }
         expect(find.text('BLOW NOW'), findsOneWidget);
@@ -353,6 +353,8 @@ void main() {
         completed = true;
         await tester.pump(const Duration(milliseconds: 350));
         await tester.pump();
+        expect(history.attempts.length, 1);
+        expect(history.records.values.single.isEsp32Vehicle, true);
         await tester.ensureVisible(find.text('VIEW RESULT'));
         await tester.tap(find.text('VIEW RESULT'));
         await tester.pumpAndSettle();
@@ -361,6 +363,7 @@ void main() {
         expect(find.textContaining('DEMO MODE'), findsNothing);
         expect(history.records.values.single.status, safety);
         expect(history.records.values.single.sensorReading, 320.0);
+        expect(history.attempts.length, 1);
         await tester.pumpWidget(const SizedBox());
       },
     );
@@ -403,7 +406,7 @@ void main() {
     );
     await tester.pump();
     expect(find.text('3'), findsOneWidget);
-    for (var i = 0; i < 22; i++) {
+    for (var i = 0; i < 32; i++) {
       await tester.pump(const Duration(seconds: 1));
     }
     expect(find.textContaining('did not reach COMPLETED'), findsOneWidget);

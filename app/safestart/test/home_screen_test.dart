@@ -29,13 +29,14 @@ void main() {
     );
     expect(find.text('DEMO / SAMPLE VALUES'), findsOneWidget);
     expect(find.text('No tests recorded yet'), findsOneWidget);
-    await tapVisible(
-      tester,
-      find.widgetWithIcon(IconButton, Icons.notifications_outlined),
-    );
+    expect(find.text('Notifications'), findsNothing);
+    expect(find.byIcon(Icons.notifications_outlined), findsNothing);
     expect(
-      find.text('Notifications will be available in a later step.'),
-      findsOneWidget,
+      tester
+          .widget<NavigationBar>(find.byType(NavigationBar))
+          .destinations
+          .length,
+      3,
     );
 
     for (final label in ['START VEHICLE TEST', 'START OFFICE TEST']) {
@@ -59,21 +60,6 @@ void main() {
     for (final action in actions.entries) {
       await tapVisible(tester, find.widgetWithText(ListTile, action.key));
       expect(find.text(action.value), findsOneWidget);
-    }
-    for (final label in ['Notifications']) {
-      await tapVisible(
-        tester,
-        find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.text(label),
-        ),
-      );
-      expect(find.text('$label will be implemented later.'), findsOneWidget);
-      expect(
-        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        0,
-      );
-      expect(find.byType(HomeScreen), findsOneWidget);
     }
     await tapVisible(
       tester,

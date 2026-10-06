@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum MainDestination { home, history, notifications, settings }
+enum MainDestination { home, history, settings }
 
 class MainNavigationBar extends StatelessWidget {
   const MainNavigationBar({
@@ -24,10 +24,6 @@ class MainNavigationBar extends StatelessWidget {
         label: 'Home',
       ),
       NavigationDestination(icon: Icon(Icons.history), label: 'History'),
-      NavigationDestination(
-        icon: Icon(Icons.notifications_outlined),
-        label: 'Notifications',
-      ),
       NavigationDestination(
         icon: Icon(Icons.settings_outlined),
         label: 'Settings',

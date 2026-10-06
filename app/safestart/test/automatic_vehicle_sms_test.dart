@@ -143,7 +143,12 @@ void main() {
           expect(fake.calls, expected);
           final completedPolls = polls;
           await tester.pump(const Duration(seconds: 2));
-          expect(polls, completedPolls); // Completed polling is stopped.
+          if (type == TestType.vehicle) {
+            expect(polls, completedPolls);
+          } else {
+            expect(polls, greaterThan(completedPolls)); // Office observes gate.
+          }
+          expect(history.attempts.length, 1);
           await tester.pumpWidget(app());
           await tester.pumpAndSettle();
           expect(fake.calls, expected);

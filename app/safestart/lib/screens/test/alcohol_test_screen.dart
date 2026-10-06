@@ -19,6 +19,7 @@ import '../../services/user_profile_repository.dart';
 import '../../services/demo_user_profile_repository.dart';
 import '../../models/safety_status.dart';
 import '../../widgets/emergency_alert_section.dart';
+import '../../widgets/test_save_status.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/custom_card.dart';
 import '../../widgets/primary_button.dart';
@@ -45,6 +46,10 @@ class AlcoholTestScreen extends StatefulWidget {
 class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
   AlcoholTestState _state = AlcoholTestState.ready;
   Timer? _timer;
+  Timer? _gateTimer;
+
+  final _gate = ValueNotifier<String?>(null);
+  int get _samplingSeconds => _hardware ? 10 : 5;
 
   int _countdown = 3;
   int _samples = 0;
@@ -97,6 +102,7 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
 
   void _beginCountdown() {
     final run = ++_run;
+    _gate.value = null;
 
     setState(() {
       _state = AlcoholTestState.countdown;
@@ -120,10 +126,10 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
         });
       } else {
         setState(() {
-          if (_samples < 5) _samples++;
+          if (_samples < _samplingSeconds) _samples++;
         });
 
-        if (_samples == 5) {
+        if (_samples == _samplingSeconds) {
           timer.cancel();
           if (!_hardware) _collect(run);
         }
@@ -155,19 +161,28 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
   }
 
   Future<void> _pollVehicle(int run) async {
-    final deadline = Timer(const Duration(seconds: 20), () {
-      _fail(run, TimeoutException('Vehicle test did not complete.'));
+    final deadline = Timer(const Duration(seconds: 30), () {
+      _fail(
+        run,
+        TimeoutException('${widget.testType.label} test did not complete.'),
+      );
       if (mounted && run == _run) _run++;
     });
     try {
-      for (var polls = 0; polls < 60 && mounted && run == _run; polls++) {
+      while (mounted && run == _run) {
         final sensor = widget.sensorService as Esp32AlcoholSensorService;
         final result = widget.testType == TestType.vehicle
             ? await sensor.pollVehicleResult()
             : await sensor.pollOfficeResult();
         if (!mounted || run != _run) return;
+        if (widget.testType == TestType.office) {
+          _gate.value = sensor.lastOfficeGate;
+        }
         if (result != null) {
           _complete(result, hardwareRun: true);
+          if (widget.testType == TestType.office) {
+            _watchOfficeGate(run);
+          }
           return;
         }
         await Future<void>.delayed(const Duration(milliseconds: 350));
@@ -179,9 +194,26 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
     }
   }
 
+  void _watchOfficeGate(int run) {
+    _gateTimer = Timer(const Duration(seconds: 1), () async {
+      if (!mounted || run != _run) return;
+      final sensor = widget.sensorService as Esp32AlcoholSensorService;
+      String? gate;
+      try {
+        gate = await sensor.readOfficeGate();
+      } catch (_) {
+        // Do not present an old OPEN value as a current verified gate state.
+      }
+      if (!mounted || run != _run) return;
+      _gate.value = gate;
+      _watchOfficeGate(run);
+    });
+  }
+
   void _complete(AlcoholTestResult result, {bool hardwareRun = false}) {
     if (_state == AlcoholTestState.completed) return;
     _timer?.cancel();
+    _gateTimer?.cancel();
     setState(() {
       _reading = result.sensorReading;
       _state = AlcoholTestState.completed;
@@ -208,12 +240,14 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
         );
       }
     });
+    if (_save != null) unawaited(_save!.save());
     if (_alert != null) unawaited(_alert!.sendOnce());
   }
 
   void _fail(int run, Object error) {
     if (!mounted || run != _run) return;
     _timer?.cancel();
+    _gateTimer?.cancel();
     setState(() {
       _starting = false;
       _state = AlcoholTestState.ready;
@@ -230,7 +264,9 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
 
   void _reset() {
     _timer?.cancel();
+    _gateTimer?.cancel();
     _run++;
+    _gate.value = null;
     _completedResult = null;
     _save = null;
     _alert = null;
@@ -278,6 +314,7 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
     if (cancel != true) return;
 
     _timer?.cancel();
+    _gateTimer?.cancel();
     _run++;
 
     setState(() => _allowLeave = true);
@@ -296,13 +333,14 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
 
     _viewingResult = true;
 
-    _save?.save();
-
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => TestResultScreen(
           result: result,
           save: _save,
+          officeGate: widget.testType == TestType.office && _hardware
+              ? _gate
+              : null,
           automaticAlert: _alert,
           profileRepository: widget.profileRepository,
           smsService: widget.smsService,
@@ -316,7 +354,9 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _gateTimer?.cancel();
     _run++;
+    _gate.dispose();
     super.dispose();
   }
 
@@ -426,7 +466,10 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
                           const SizedBox(height: 20),
 
                           TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0, end: _samples / 5),
+                            tween: Tween(
+                              begin: 0,
+                              end: _samples / _samplingSeconds,
+                            ),
                             duration: const Duration(milliseconds: 300),
                             builder: (context, value, _) =>
                                 LinearProgressIndicator(
@@ -434,14 +477,15 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
                                   minHeight: 8,
                                   semanticsLabel:
                                       'MQ-3 sensor sampling progress',
-                                  semanticsValue: '${(_samples * 20)}%',
+                                  semanticsValue:
+                                      '${(_samples * 100 ~/ _samplingSeconds)}%',
                                 ),
                           ),
 
                           const SizedBox(height: 12),
 
                           Text(
-                            '${_samples * 20}%',
+                            '${_samples * 100 ~/ _samplingSeconds}%',
                             textAlign: TextAlign.center,
                           ),
 
@@ -481,6 +525,17 @@ class _AlcoholTestScreenState extends State<AlcoholTestScreen> {
 
                   const SizedBox(height: 20),
 
+                  if (_hardware &&
+                      widget.testType == TestType.office &&
+                      (_active || _state == AlcoholTestState.completed))
+                    ValueListenableBuilder<String?>(
+                      valueListenable: _gate,
+                      builder: (context, gate, _) => Text(
+                        gate == null ? 'Gate state unavailable' : 'GATE $gate',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  if (_save != null) TestSaveStatus(save: _save!),
                   if (_alert != null) ...[
                     EmergencyAlertSection(
                       profileRepository: _alert!.profiles,

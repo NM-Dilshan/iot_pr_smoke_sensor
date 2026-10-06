@@ -130,14 +130,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     HistoryScreen(profileRepository: widget.repository),
               ),
             );
-          case MainDestination.notifications:
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(
-                  content: Text('Notifications will be implemented later.'),
-                ),
-              );
           case MainDestination.settings:
             break;
         }

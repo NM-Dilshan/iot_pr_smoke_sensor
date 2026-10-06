@@ -59,14 +59,6 @@ class HomeScreen extends StatelessWidget {
             );
             return;
           }
-          final message = switch (destination) {
-            MainDestination.home => null,
-            MainDestination.history => null,
-            MainDestination.notifications =>
-              'Notifications will be implemented later.',
-            MainDestination.settings => null,
-          };
-          if (message != null) _message(context, message);
         },
       ),
       body: SafeArea(
@@ -110,14 +102,6 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         icon: const Icon(Icons.person_outline),
-                      ),
-                      IconButton(
-                        tooltip: 'Notifications',
-                        onPressed: () => _message(
-                          context,
-                          'Notifications will be available in a later step.',
-                        ),
-                        icon: const Icon(Icons.notifications_outlined),
                       ),
                     ],
                   ),

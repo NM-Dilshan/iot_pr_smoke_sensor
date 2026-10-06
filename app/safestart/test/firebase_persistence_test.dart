@@ -328,7 +328,7 @@ void main() {
     expect(find.text('DEMO DATA'), findsNothing);
   });
   testWidgets(
-    'viewing a completed test saves once, revisiting does not duplicate',
+    'completion saves before navigation, revisiting does not duplicate',
     (tester) async {
       final history = MemoryHistory();
       await tester.pumpWidget(
@@ -340,7 +340,8 @@ void main() {
         await tester.pump(const Duration(seconds: 1));
       }
       await tester.pumpAndSettle();
-      expect(history.records, isEmpty);
+      expect(history.records.length, 1);
+      expect(history.attempts.length, 1);
       await tap(tester, 'VIEW RESULT');
       expect(find.text('Test result saved.'), findsOneWidget);
       expect(history.records.length, 1);

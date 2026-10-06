@@ -185,14 +185,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           );
         }
-        if (destination == MainDestination.notifications) {
-          const label = 'Notifications';
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(content: Text('$label will be implemented later.')),
-            );
-        }
       },
     ),
     body: SafeArea(
